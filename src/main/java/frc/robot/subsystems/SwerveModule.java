@@ -1,5 +1,7 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.can.TalonFX;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
@@ -15,10 +17,10 @@ import frc.robot.Constants.ModuleConstants;
 
 public class SwerveModule {
 
-    private final CANSparkMax driveMotor;
+    private final TalonFX driveMotor;
     private final CANSparkMax turningMotor;
-
-    private final RelativeEncoder driveEncoder;
+    
+    
     private final RelativeEncoder turningEncoder;
 
     private final PIDController turningPidController;
@@ -35,17 +37,19 @@ public class SwerveModule {
         this.absoluteEncoderReversed = absoluteEncoderReversed;
         absoluteEncoder = new AnalogInput(absoluteEncoderId);
 
-        driveMotor = new CANSparkMax(driveMotorId, MotorType.kBrushless);
+        driveMotor = new TalonFX(driveMotorId);
         turningMotor = new CANSparkMax(turningMotorId, MotorType.kBrushless);
 
         driveMotor.setInverted(driveMotorReversed);
         turningMotor.setInverted(turningMotorReversed);
 
-        driveEncoder = driveMotor.getEncoder();
+        
         turningEncoder = turningMotor.getEncoder();
 
-        driveEncoder.setPositionConversionFactor(ModuleConstants.kDriveEncoderRot2Meter);
-        driveEncoder.setVelocityConversionFactor(ModuleConstants.kDriveEncoderRPM2MeterPerSec);
+        
+        driveMotor.configSelectedFeedbackCoefficient(ModuleConstants.kDriveEncoderRot2Meter);
+        driveMotor.configMotionCruiseVelocity(ModuleConstants.kDriveEncoderRPM2MeterPerSec); //couldnt find method for velocity conversion factor :/
+
         turningEncoder.setPositionConversionFactor(ModuleConstants.kTurningEncoderRot2Rad);
         turningEncoder.setVelocityConversionFactor(ModuleConstants.kTurningEncoderRPM2RadPerSec);
 
@@ -56,7 +60,7 @@ public class SwerveModule {
     }
 
     public double getDrivePosition() {
-        return driveEncoder.getPosition();
+        return driveMotor.getSelectedSensorPosition();
     }
 
     public double getTurningPosition() {
@@ -74,7 +78,7 @@ public class SwerveModule {
     }
 
     public double getDriveVelocity() {
-        return driveEncoder.getVelocity();
+        return driveMotor.getSelectedSensorVelocity();
     }
 
     public double getTurningVelocity() {
@@ -89,7 +93,7 @@ public class SwerveModule {
     }
 
     public void resetEncoders() {
-        driveEncoder.setPosition(0);
+        driveMotor.setSelectedSensorPosition(0);
         turningEncoder.setPosition(getAbsoluteEncoderRad());
     }
 
@@ -103,13 +107,13 @@ public class SwerveModule {
             return;
         }
         state = SwerveModuleState.optimize(state, getState().angle);
-        driveMotor.set(state.speedMetersPerSecond / DriveConstants.kPhysicalMaxSpeedMetersPerSecond);
+        driveMotor.set(ControlMode.PercentOutput,state.speedMetersPerSecond / DriveConstants.kPhysicalMaxSpeedMetersPerSecond);
         turningMotor.set(turningPidController.calculate(getTurningPosition(), state.angle.getRadians()));
         SmartDashboard.putString("Swerve[" + absoluteEncoder.getChannel() + "] state", state.toString());
     }
 
     public void stop() {
-        driveMotor.set(0);
+        driveMotor.set(ControlMode.PercentOutput,0);
         turningMotor.set(0);
     }
 }
