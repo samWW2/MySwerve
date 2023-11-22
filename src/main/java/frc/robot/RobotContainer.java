@@ -24,7 +24,7 @@ import frc.robot.subsystems.SwerveSubsystem;
 
 public class RobotContainer {
 
-    private final SwerveSubsystem swerveSubsystem = new SwerveSubsystem();
+    public final static SwerveSubsystem swerveSubsystem = new SwerveSubsystem();
 
     private final Joystick driverJoytick = new Joystick(OIConstants.kDriverControllerPort);
 
